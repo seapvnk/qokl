@@ -8,6 +8,7 @@ require (
 	github.com/glycerine/liner v0.0.0-20160121172638-72909af234e0 // indirect
 	github.com/glycerine/zygomys v5.1.2+incompatible // indirect
 	github.com/go-chi/chi/v5 v5.2.2 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
 	github.com/shurcooL/go v0.0.0-20200502201357-93f07166e636 // indirect
