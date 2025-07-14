@@ -97,3 +97,23 @@ func TestApiPostCanUseBody(t *testing.T) {
 		t.Errorf("Expected response to contain %q, got %q", expected, resp.Body.String())
 	}
 }
+
+func TestApiGetCanUseHeader(t *testing.T) {
+	router := setupTestServer(t)
+
+	req := httptest.NewRequest("GET", "/api/hello", nil)
+	req.Header.Set("Authorization", "ok")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		t.Errorf("Expected status 200 OK, got %d", resp.Code)
+	}
+
+	expected := `{"message":"your token is: ok"}`
+	if !strings.Contains(resp.Body.String(), expected) {
+		t.Errorf("Expected response to contain %q, got %q", expected, resp.Body.String())
+	}
+}
