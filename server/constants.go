@@ -4,4 +4,3 @@ const (
 	apiDir = "api"
 	wsDir  = "channels"
 )
-

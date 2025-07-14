@@ -12,4 +12,3 @@ func buildRoutePath(parts []string) string {
 	path := strings.Join(parts, "/")
 	return "/" + path
 }
-

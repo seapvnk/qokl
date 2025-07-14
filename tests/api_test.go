@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,7 +14,6 @@ func setupTestServer(t *testing.T) http.Handler {
 	srv := server.New("./")
 	return srv.Router
 }
-
 
 // Checks if a simple get can be performed
 func TestApiCanGet(t *testing.T) {
@@ -78,3 +78,42 @@ func TestApiCanGetParam(t *testing.T) {
 	}
 }
 
+func TestApiPostCanUseBody(t *testing.T) {
+	router := setupTestServer(t)
+
+	payload := `{"email": "myemail@mail.com", "password": "mypasswd"}`
+	req := httptest.NewRequest("POST", "/api/hello", bytes.NewBuffer([]byte(payload)))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		t.Fatalf("Expected status 200 OK, got %d", resp.Code)
+	}
+
+	expected := `{"message":"your email ismyemail@mail.com, and your password is mypasswd"`
+	if !strings.Contains(resp.Body.String(), expected) {
+		t.Errorf("Expected response to contain %q, got %q", expected, resp.Body.String())
+	}
+}
+
+func TestApiGetCanUseHeader(t *testing.T) {
+	router := setupTestServer(t)
+
+	req := httptest.NewRequest("GET", "/api/hello", nil)
+	req.Header.Set("Authorization", "ok")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		t.Errorf("Expected status 200 OK, got %d", resp.Code)
+	}
+
+	expected := `{"message":"your token is: ok"}`
+	if !strings.Contains(resp.Body.String(), expected) {
+		t.Errorf("Expected response to contain %q, got %q", expected, resp.Body.String())
+	}
+}

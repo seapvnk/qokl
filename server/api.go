@@ -1,12 +1,12 @@
 package server
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"encoding/json"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/seapvnk/qokl/core"
@@ -77,10 +77,10 @@ func wrapApiHandler(path string) http.HandlerFunc {
 		}
 
 		input := map[string]any{
-			"method": r.Method,
-			"params": vars,
+			"method":  r.Method,
+			"params":  vars,
 			"headers": headers,
-			"body": body,
+			"body":    body,
 		}
 
 		result, err := core.ExecuteScript(path, input)
@@ -118,4 +118,3 @@ func injectRouteVars(next http.HandlerFunc, parts []string) http.HandlerFunc {
 		next(w, r.WithContext(ctx))
 	}
 }
-

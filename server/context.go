@@ -19,4 +19,3 @@ func GetRouteVars(ctx context.Context) map[string]string {
 	}
 	return map[string]string{}
 }
-

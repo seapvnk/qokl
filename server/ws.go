@@ -45,4 +45,3 @@ func wrapWSHandler(path string) http.HandlerFunc {
 		conn.WriteMessage(websocket.TextMessage, []byte("WebSocket for "+path))
 	}
 }
-
