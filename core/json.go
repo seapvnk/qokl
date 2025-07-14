@@ -50,4 +50,3 @@ func SexpToGo(sexp zygo.Sexp) (interface{}, error) {
 		return nil, fmt.Errorf("unsupported S-expression type: %T", sexp)
 	}
 }
-

@@ -6,16 +6,15 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-
 type Server struct {
 	baseDir string
-	Router chi.Router
+	Router  chi.Router
 }
 
 func New(baseDir string) *Server {
 	server := &Server{
 		baseDir: baseDir,
-		Router: chi.NewRouter(),
+		Router:  chi.NewRouter(),
 	}
 
 	server.Router.Route("/api", func(r chi.Router) {
@@ -32,4 +31,3 @@ func New(baseDir string) *Server {
 func (server *Server) Start(addr string) error {
 	return http.ListenAndServe(addr, server.Router)
 }
-

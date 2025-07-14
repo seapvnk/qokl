@@ -1,10 +1,10 @@
 package tests
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"bytes"
 	"testing"
 
 	"github.com/seapvnk/qokl/server"
@@ -14,7 +14,6 @@ func setupTestServer(t *testing.T) http.Handler {
 	srv := server.New("./")
 	return srv.Router
 }
-
 
 // Checks if a simple get can be performed
 func TestApiCanGet(t *testing.T) {

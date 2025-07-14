@@ -12,7 +12,7 @@ func main() {
 	if len(os.Args) > 1 {
 		baseDir = os.Args[1]
 	}
-	
+
 	addr := ":8080"
 	if len(os.Args) > 2 {
 		addr = os.Args[2]
@@ -23,4 +23,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-
