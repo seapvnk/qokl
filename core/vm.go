@@ -16,6 +16,12 @@ type ZygResult struct {
 func ExecuteScript(path string, input map[string]any) (*ZygResult, error) {
 	z := zygo.NewZlisp()
 
+	// setup custom functions
+	z.AddFunction("subscribe", fnSubscribe)
+	z.AddFunction("broadcast", fnBroadcast)
+	z.AddFunction("broadcastall", fnBroadcastAll)
+
+	// handle input
 	if input != nil {
 		for k, v := range input {
 			z.AddGlobal(k, toSexp(z, v))
