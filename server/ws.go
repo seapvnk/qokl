@@ -44,46 +44,46 @@ var upgrader = websocket.Upgrader{
 }
 
 func wrapWSHandler(path string) http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
-        conn, err := upgrader.Upgrade(w, r, nil)
-        if err != nil {
-            return
-        }
+	return func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
 
-        connID := core.ConnID(uuid.NewString())
-        core.RegisterConn(connID, conn)
-        defer func() {
-            core.UnregisterConn(connID)
-            conn.Close()
-        }()
+		connID := core.ConnID(uuid.NewString())
+		core.RegisterConn(connID, conn)
+		defer func() {
+			core.UnregisterConn(connID)
+			conn.Close()
+		}()
 
-        headers := map[string]string{}
-        for k, v := range r.Header {
-            if len(v) > 0 {
-                headers[k] = v[0]
-            }
-        }
+		headers := map[string]string{}
+		for k, v := range r.Header {
+			if len(v) > 0 {
+				headers[k] = v[0]
+			}
+		}
 
-        input := map[string]any{
-            "conn_id":   connID,
-            "headers":   headers,
-            "params":    extractParams(r),
-            "message":   "",
-        }
+		input := map[string]any{
+			"conn_id": connID,
+			"headers": headers,
+			"params":  extractParams(r),
+			"message": "",
+		}
 
-        core.ExecuteScript(path, input)
+		core.ExecuteScript(path, input)
 
-        // Loop for incoming messages
-        for {
-            _, msg, err := conn.ReadMessage()
-            if err != nil {
-                break
-            }
+		// Loop for incoming messages
+		for {
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				break
+			}
 
-            input["message"] = string(msg)
-            core.ExecuteScript(path, input)
-        }
-    }
+			input["message"] = string(msg)
+			core.ExecuteScript(path, input)
+		}
+	}
 }
 
 func extractParams(r *http.Request) map[string]string {
@@ -94,4 +94,3 @@ func extractParams(r *http.Request) map[string]string {
 	}
 	return params
 }
-

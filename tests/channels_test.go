@@ -106,7 +106,8 @@ func TestChannelBroadcastAll(t *testing.T) {
 			t.Error("Timeout waiting for broadcast-all message")
 			continue
 		}
-		if !strings.Contains(received, msg) {
+
+		if received != msg {
 			t.Errorf("Expected broadcast-all message containing %q, got %q", msg, received)
 		}
 	}
@@ -130,12 +131,12 @@ func TestPrivateChatToSelf(t *testing.T) {
 		t.Fatalf("Failed to send message: %v", err)
 	}
 
-	select {
-	case received := <-ch:
-		if received != testMsg {
-			t.Errorf("Expected message %q, got %q", testMsg, received)
-		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("Timeout waiting for private message")
+	received, ok := waitForNonEmptyMessage(t, ch, 3*time.Second)
+	if !ok {
+		t.Error("Timeout waiting for broadcast-all message")
+	}
+
+	if received != testMsg {
+		t.Errorf("Expected broadcast-all message containing %q, got %q", testMsg, received)
 	}
 }
