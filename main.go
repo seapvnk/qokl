@@ -4,10 +4,16 @@ import (
 	"log"
 	"os"
 
+	"github.com/seapvnk/qokl/core"
 	"github.com/seapvnk/qokl/server"
 )
 
 func main() {
+	// Setup kv store
+	core.OpenStore()
+	defer core.CloseStore()
+
+	// Init server
 	baseDir := "./"
 	if len(os.Args) > 1 {
 		baseDir = os.Args[1]

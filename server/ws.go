@@ -71,7 +71,9 @@ func wrapWSHandler(path string) http.HandlerFunc {
 			"message": "",
 		}
 
-		core.ExecuteScript(path, input)
+		vm := core.NewVM().UseCommunicationModule()
+		vm.AddVariables(input)
+		vm.Execute(path)
 
 		// Loop for incoming messages
 		for {
@@ -81,7 +83,8 @@ func wrapWSHandler(path string) http.HandlerFunc {
 			}
 
 			input["message"] = string(msg)
-			core.ExecuteScript(path, input)
+			vm.AddVariables(input)
+			vm.Execute(path)
 		}
 	}
 }
