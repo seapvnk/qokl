@@ -2,9 +2,11 @@ package core
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 
 	badger "github.com/dgraph-io/badger/v4"
+	"github.com/glycerine/zygomys/zygo"
 )
 
 func queueKey(name string, index uint64) []byte {
@@ -25,25 +27,42 @@ func bytesToUint64(b []byte) uint64 {
 	return binary.BigEndian.Uint64(b)
 }
 
-// Enqueue adds a message to the queue
-func StoreEnqueue(queueName string, value []byte) error {
-	return store.Update(func(txn *badger.Txn) error {
+// fnDispatch adds a message to a queue
+// Lisp: (dispatch aQueue: (key1: "value" key2: "value"))
+func fnDispatch(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
+	if len(args) != 2 {
+		return zygo.SexpNull, zygo.WrongNargs
+	}
+
+	queueName, ok := args[0].(*zygo.SexpStr)
+	if !ok {
+		return zygo.SexpNull, errors.New("dispatch: first arg must be string")
+	}
+
+	value, ok := args[0].(*zygo.SexpRaw)
+	if !ok {
+		return zygo.SexpNull, errors.New("dispatch: second arg must serialized hash, use json function")
+	}
+
+	err := store.Update(func(txn *badger.Txn) error {
 		// read tail
 		var tail uint64
-		item, err := txn.Get(metaKey(queueName, "tail"))
+		item, err := txn.Get(metaKey(queueName.S, "tail"))
 		if err == nil {
 			val, _ := item.ValueCopy(nil)
 			tail = bytesToUint64(val)
 		}
 
 		// write new entry
-		if err := txn.Set(queueKey(queueName, tail), value); err != nil {
+		if err := txn.Set(queueKey(queueName.S, tail), value.Val); err != nil {
 			return err
 		}
 
 		// increment tail
-		return txn.Set(metaKey(queueName, "tail"), uint64ToBytes(tail+1))
+		return txn.Set(metaKey(queueName.S, "tail"), uint64ToBytes(tail+1))
 	})
+
+	return zygo.SexpNull, err
 }
 
 // Dequeue gets and deletes the oldest message

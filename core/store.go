@@ -18,6 +18,13 @@ func OpenStore() {
 	store = db
 }
 
+// Store module setup
+func (vm *VM) UseStoreModule() *VM {
+	vm.environment.AddFunction("dispatch", fnDispatch)
+
+	return vm.UseCacheModule()
+}
+
 func CloseStore() {
 	store.Close()
 }
