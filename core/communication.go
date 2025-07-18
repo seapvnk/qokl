@@ -18,6 +18,15 @@ var (
 	wsMu          sync.RWMutex
 )
 
+// Communication module setup
+func (vm *VM) UseCommunicationModule() *VM {
+	vm.environment.AddFunction("subscribe", fnSubscribe)
+	vm.environment.AddFunction("broadcast", fnBroadcast)
+	vm.environment.AddFunction("broadcastall", fnBroadcastAll)
+
+	return vm
+}
+
 // RegisterConn registers a new WebSocket connection.
 func RegisterConn(id ConnID, conn *websocket.Conn) {
 	wsMu.Lock()

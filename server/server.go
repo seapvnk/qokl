@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -28,6 +29,9 @@ func New(baseDir string) *Server {
 	return server
 }
 
-func (server *Server) Start(addr string) error {
-	return http.ListenAndServe(addr, server.Router)
+func (server *Server) Start(addr string) {
+	err := http.ListenAndServe(addr, server.Router)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

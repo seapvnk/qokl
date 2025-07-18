@@ -76,14 +76,15 @@ func wrapApiHandler(path string) http.HandlerFunc {
 			}
 		}
 
-		input := map[string]any{
+		vm := core.NewVM().UseCommunicationModule().UseStoreModule()
+		vm.AddVariables(map[string]any{
 			"method":  r.Method,
 			"params":  vars,
 			"headers": headers,
 			"body":    body,
-		}
+		})
 
-		result, err := core.ExecuteScript(path, input)
+		result, err := vm.Execute(path)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
