@@ -18,76 +18,78 @@ func (vm *VM) UseCacheModule() *VM {
 }
 
 // fnStoreSetCache set a value on a key in cache.
-// Lisp: (setCache "my-key" "my-value" 10)
+// Lisp: (setCache %mykey 10 (msgpack(hash(msg: "value"))))
 func fnStoreSetCache(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
 	if len(args) != 3 {
 		return zygo.SexpNull, zygo.WrongNargs
 	}
 
-	key, ok := args[0].(*zygo.SexpStr)
+	key, ok := args[0].(*zygo.SexpSymbol)
 	if !ok {
-		return zygo.SexpNull, errors.New("setCache: first arg must be string")
+		return zygo.SexpNull, errors.New("setCache: first arg must be symbol")
 	}
 
-	value, ok := args[1].(*zygo.SexpStr)
-	if !ok {
-		return zygo.SexpNull, errors.New("setCache: second arg must be string")
-	}
-
-	ttl, ok := args[2].(*zygo.SexpInt)
+	ttl, ok := args[1].(*zygo.SexpInt)
 	if !ok {
 		return zygo.SexpNull, errors.New("setCache: third arg must be int")
 	}
 
-	entry := badger.NewEntry([]byte("cache."+key.S), []byte(value.S))
-	if ttl.Val > 0 {
-		entry.WithTTL(time.Second * time.Duration(ttl.Val))
+	value, ok := args[2].(*zygo.SexpRaw)
+	if !ok {
+		return zygo.SexpNull, errors.New("setCache: second arg must be raw bytes")
 	}
 
 	err := store.Update(func(txn *badger.Txn) error {
+		entry := badger.NewEntry([]byte("cache."+key.Name()), value.Val)
+		if ttl.Val > 0 {
+			entry.WithTTL(time.Second * time.Duration(ttl.Val))
+		}
+
 		return txn.SetEntry(entry)
 	})
 
 	return zygo.SexpNull, err
 }
 
-// fnStoreGetCache retrieves a cached value, returns errror if not found or expired
-// Lisp: (getCache "my-key")
+// fnStoreGetCache retrieves a cached value, returns nil if not found or expired
+// Lisp: (getCache %mykey)
 func fnStoreGetCache(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
 	if len(args) != 1 {
 		return zygo.SexpNull, zygo.WrongNargs
 	}
 
-	key, ok := args[0].(*zygo.SexpStr)
+	key, ok := args[0].(*zygo.SexpSymbol)
 	if !ok {
-		return zygo.SexpNull, errors.New("getCache: first arg must be string")
+		return zygo.SexpNull, errors.New("getCache: first arg must be symbol")
 	}
-	var val string
+	var val []byte
 	err := store.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte("cache." + string(key.S)))
+		item, err := txn.Get([]byte("cache." + key.Name()))
 		if err != nil {
 			return errors.New("key not found or expired")
 		}
 
-		var valCopy []byte
-		valCopy, err = item.ValueCopy(nil)
-		val = string(valCopy)
+		val, err = item.ValueCopy(nil)
 		return err
 	})
-	return toSexp(env, val), err
+
+	if err != nil {
+		return zygo.SexpNull, nil
+	}
+
+	return toSexp(env, val), nil
 }
 
-// DeleteCache removes a key from the cache
 // fnStoreDeleteCache removes a key from the cache
-// Lisp: (deleteCache "my-key")
+// Lisp: (deleteCache %mykey)
 func fnStoreDeleteCache(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
-	key, ok := args[0].(*zygo.SexpStr)
+	key, ok := args[0].(*zygo.SexpSymbol)
 	if !ok {
-		return zygo.SexpNull, errors.New("deleteCache: first arg must be string")
+		return zygo.SexpNull, errors.New("deleteCache: first arg must be symbol")
 	}
 
 	err := store.Update(func(txn *badger.Txn) error {
-		return txn.Delete([]byte("cache." + key.S))
+		return txn.Delete([]byte("cache." + key.Name()))
 	})
 
 	return zygo.SexpNull, err

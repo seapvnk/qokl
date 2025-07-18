@@ -5,53 +5,64 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/seapvnk/qokl/core"
 )
 
 type Listener struct {
 	baseDir string
+	closed  chan struct{}
 }
 
 func New(baseDir string) *Listener {
-	listener := &Listener{
+	return &Listener{
 		baseDir: baseDir,
+		closed:  make(chan struct{}),
 	}
-	return listener
+}
+
+func (listener *Listener) Close() {
+	close(listener.closed)
 }
 
 func (listener *Listener) Run() {
-	// listener main loop
+	tasksPath := filepath.Join(listener.baseDir, tasksDir)
+
 	for {
-		tasksPath := filepath.Join(listener.baseDir, tasksDir)
-		filepath.Walk(tasksPath, func(path string, info os.FileInfo, err error) error {
-			if err != nil || info.IsDir() {
-				return err
-			}
+		select {
+		case <-listener.closed:
+			return
+		default:
+			_ = filepath.Walk(tasksPath, func(path string, info os.FileInfo, err error) error {
+				if err != nil || info.IsDir() {
+					return nil
+				}
 
-			rel, _ := filepath.Rel(tasksPath, path)
-			queue := strings.ToLower(rel)
-			queue = strings.Replace(queue, ".lisp", "", 1)
+				rel, _ := filepath.Rel(tasksPath, path)
+				queue := strings.TrimSuffix(strings.ToLower(rel), ".lisp")
 
-			var msg []byte
-			msg, err = core.StoreDequeue(queue)
-			if err == nil {
-				go handleTask(path, msg)
-			}
+				msg, err := core.StoreDequeue(queue)
+				if err == nil && len(msg) > 0 {
+					go handleTask(path, msg)
+				}
 
-			return nil
-		})
+				return nil
+			})
+
+			time.Sleep(10 * time.Millisecond)
+		}
 	}
 }
 
 func handleTask(queuePath string, msg []byte) {
-	vm := core.NewVM()
+	vm := core.NewVM().UseStoreModule()
 	vm.AddVariables(map[string]any{
 		"msg": msg,
 	})
 
 	_, err := vm.Execute(queuePath)
 	if err != nil {
-		log.Println(err.Error())
+		log.Printf("[task - %s] error: %s\n", queuePath, err.Error())
 	}
 }

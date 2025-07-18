@@ -76,7 +76,7 @@ func wrapApiHandler(path string) http.HandlerFunc {
 			}
 		}
 
-		vm := core.NewVM().UseCommunicationModule()
+		vm := core.NewVM().UseCommunicationModule().UseStoreModule()
 		vm.AddVariables(map[string]any{
 			"method":  r.Method,
 			"params":  vars,

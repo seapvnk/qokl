@@ -28,18 +28,18 @@ func bytesToUint64(b []byte) uint64 {
 }
 
 // fnDispatch adds a message to a queue
-// Lisp: (dispatch aQueue: (key1: "value" key2: "value"))
+// Lisp: (dispatch aQueue: (msgpack(hash key1: "value" key2: "value")))
 func fnDispatch(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
 	if len(args) != 2 {
 		return zygo.SexpNull, zygo.WrongNargs
 	}
 
-	queueName, ok := args[0].(*zygo.SexpStr)
+	queueName, ok := args[0].(*zygo.SexpSymbol)
 	if !ok {
-		return zygo.SexpNull, errors.New("dispatch: first arg must be string")
+		return zygo.SexpNull, errors.New("dispatch: first arg must be symbol")
 	}
 
-	value, ok := args[0].(*zygo.SexpRaw)
+	value, ok := args[1].(*zygo.SexpRaw)
 	if !ok {
 		return zygo.SexpNull, errors.New("dispatch: second arg must serialized hash, use json function")
 	}
@@ -47,19 +47,19 @@ func fnDispatch(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, erro
 	err := store.Update(func(txn *badger.Txn) error {
 		// read tail
 		var tail uint64
-		item, err := txn.Get(metaKey(queueName.S, "tail"))
+		item, err := txn.Get(metaKey(queueName.Name(), "tail"))
 		if err == nil {
 			val, _ := item.ValueCopy(nil)
 			tail = bytesToUint64(val)
 		}
 
 		// write new entry
-		if err := txn.Set(queueKey(queueName.S, tail), value.Val); err != nil {
+		if err := txn.Set(queueKey(queueName.Name(), tail), value.Val); err != nil {
 			return err
 		}
 
 		// increment tail
-		return txn.Set(metaKey(queueName.S, "tail"), uint64ToBytes(tail+1))
+		return txn.Set(metaKey(queueName.Name(), "tail"), uint64ToBytes(tail+1))
 	})
 
 	return zygo.SexpNull, err

@@ -71,7 +71,7 @@ func wrapWSHandler(path string) http.HandlerFunc {
 			"message": "",
 		}
 
-		vm := core.NewVM().UseCommunicationModule()
+		vm := core.NewVM().UseCommunicationModule().UseStoreModule()
 		vm.AddVariables(input)
 		vm.Execute(path)
 
