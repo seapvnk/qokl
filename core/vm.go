@@ -18,9 +18,11 @@ type VM struct {
 
 func NewVM() *VM {
 	env := zygo.NewZlisp()
-	return &VM{
+	vm := &VM{
 		environment: env,
 	}
+
+	return vm.UseEntityModule()
 }
 
 func (vm *VM) AddVariables(variables map[string]any) {
@@ -40,6 +42,16 @@ func (vm *VM) Execute(path string) (*ZygResult, error) {
 	err = vm.environment.LoadString(string(code))
 	if err != nil {
 		return nil, fmt.Errorf("error executing %s: %w", path, err)
+	}
+
+	out, err := vm.environment.Run()
+	return &ZygResult{Value: out, Error: err}, nil
+}
+
+func (vm *VM) ExecuteString(code string) (*ZygResult, error) {
+	err := vm.environment.LoadString(code)
+	if err != nil {
+		return nil, fmt.Errorf("error executing %s: %w", code, err)
 	}
 
 	out, err := vm.environment.Run()

@@ -9,9 +9,11 @@ import (
 )
 
 func main() {
-	// Setup kv store
+	// Setup kv store and entity database
 	core.OpenStore()
+	core.OpenDB()
 	defer core.CloseStore()
+	defer core.CloseDB()
 
 	// Init server
 	baseDir := "./"
