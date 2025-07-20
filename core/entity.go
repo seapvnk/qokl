@@ -26,14 +26,14 @@ import (
 * (relationship myEntity yourEntity are: %friends %(for 10 years)) // are for both sides, belongs <-, has ->
 * (relationOf myEntity yourEntity) // fetch all relationships between these two
 * (relationsOf myEntity %friends are: %(for 10 years) has: %(meet years ago)) // fetch every which meet criteraa
-* (select admin: (fn [name age] (and (> age 22) (= name "Pedro")))) // args are injected by entities key in admin tag
-* (delete admin: (fn [name age] (and (> age 22) (= name "Pedro"))))
+* (select admin: (fn [e] (and (> (hget %age) 22) (= (hget %name) "Pedro"))))
+* (delete admin: (fn [e] (and (> (hget %age) 22) (= (hget %name) "Pedro"))))
 * (update admin:
-        (fn [newEntity]
-            (begin (hset newEntity %age (+ 1 (hget %age)))
+        (fn [e]
+            (begin (hset e %age (+ 1 (e %age)))
                    (newEntity))
-        (fn [name age]
-            (and (> age 22) (= name "Pedro")))))
+        (fn [e]
+            (and (> (hget e %age) 22) (= (hget e %name) "Pedro")))))
 */
 
 var edb *badger.DB
@@ -52,6 +52,7 @@ func OpenDB() {
 func (vm *VM) UseEntityModule() *VM {
 	vm.environment.AddFunction("insert", fnEntityInsert)
 	vm.environment.AddFunction("entity", fnEntityGet)
+	vm.environment.AddFunction("select", fnEntitySelect)
 
 	return vm
 }
@@ -62,22 +63,6 @@ func CloseDB() {
 
 type StoredValue struct {
 	Value any `json:"value"`
-}
-
-func makeEntityEntry(entityID string) []byte {
-	return []byte("entities." + entityID)
-}
-
-func makeTagEntry(tagName string, entityID string) []byte {
-	return []byte("tags." + entityID + "." + tagName)
-}
-
-func makeEntityComponentEntry(componentName string, entityID string) []byte {
-	return []byte("components." + entityID + "." + componentName)
-}
-
-func makeEntityComponentQuery(entityID string) []byte {
-	return []byte("components." + entityID + ".")
 }
 
 // fnEntityInsert insert an entity at database
@@ -162,57 +147,52 @@ func fnEntityGet(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, err
 		return zygo.SexpNull, zygo.WrongNargs
 	}
 
-	var objID string
-	// extract obj id
-	switch val := args[0].(type) {
-	case *zygo.SexpStr:
-		objID = val.S
-	case *zygo.SexpHash:
-		for _, pairList := range val.Map {
-			for _, pair := range pairList {
-				kstr := pair.Head.(*zygo.SexpSymbol)
-				if kstr.Name() == "id" {
-					value, ok := pair.Tail.(*zygo.SexpStr)
-					if !ok {
-						return zygo.SexpNull, zygo.WrongNargs
-					}
-					objID = value.S
-					break
-				}
-			}
-		}
+	objID := getEntityIDFromQuery(args[0])
+	entityHash := retrieveEntity(env, objID)
+
+	return entityHash, nil
+}
+
+// fnEntitySelect return all entities that matches
+// Lisp (select admin: (fn [e] (and (> (hget %age) 22) (= (hget name) "Pedro"))))
+func fnEntitySelect(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
+	if len(args) != 2 {
+		return zygo.SexpNull, zygo.WrongNargs
 	}
 
-	// build entity hash
-	entityHash := zygo.SexpHash{
-		Map: make(map[int][]*zygo.SexpPair),
+	tag, tagOk := args[0].(*zygo.SexpSymbol)
+	if !tagOk {
+		return zygo.SexpNull, zygo.WrongNargs
 	}
+
+	predicate, predicateOk := args[1].(*zygo.SexpFunction)
+	if !predicateOk {
+		return zygo.SexpNull, zygo.WrongNargs
+	}
+
+	rows := &zygo.SexpArray{}
 
 	edb.View(func(txn *badger.Txn) error {
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
-		query := makeEntityComponentQuery(objID)
-		prefix := []byte(query)
-		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+		query := makeTagQuery(tag.Name())
+		for it.Seek(query); it.ValidForPrefix(query); it.Next() {
 			item := it.Item()
 			key := strings.Replace(string(item.Key()), string(query), "", int(1))
-			item.Value(func(v []byte) error {
-				var itemValue StoredValue
-				err := json.Unmarshal(v, &itemValue)
-				if err != nil {
-					return nil
-				}
-				keySexp := env.MakeSymbol(key)
-				valSexp := toSexp(env, itemValue.Value)
-				entityHash.HashSet(keySexp, valSexp)
-				return nil
-			})
-		}
 
+			entityHash := retrieveEntity(env, key)
+			result, err := env.Apply(predicate, []zygo.Sexp{entityHash})
+			if err == nil {
+				result, isBool := result.(*zygo.SexpBool)
+				if isBool && result.Val {
+					rows.Val = append(rows.Val, entityHash)
+				}
+			} else {
+				log.Printf(err.Error())
+			}
+		}
 		return nil
 	})
 
-	entityHash.HashSet(env.MakeSymbol("id"), toSexp(env, objID))
-
-	return &entityHash, nil
+	return rows, nil
 }
