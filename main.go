@@ -9,12 +9,6 @@ import (
 )
 
 func main() {
-	// Setup kv store and entity database
-	core.OpenStore()
-	core.OpenDB()
-	defer core.CloseStore()
-	defer core.CloseDB()
-
 	// Init server
 	baseDir := "./"
 	if len(os.Args) > 1 {
@@ -25,6 +19,12 @@ func main() {
 	if len(os.Args) > 2 {
 		addr = os.Args[2]
 	}
+
+	// Setup kv store and entity database
+	core.OpenStore()
+	core.OpenDB(baseDir)
+	defer core.CloseStore()
+	defer core.CloseDB()
 
 	// run server
 	srv := server.New(baseDir)

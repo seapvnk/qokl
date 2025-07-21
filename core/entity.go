@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"log"
+	"path/filepath"
 	"strings"
 
 	badger "github.com/dgraph-io/badger/v4"
@@ -38,9 +39,15 @@ import (
 
 var edb *badger.DB
 
-func OpenDB() {
+func OpenDB(baseDir string) {
 	var err error
-	db, err := badger.Open(badger.DefaultOptions("./.storage"))
+	storagePath := filepath.Join(baseDir, "/.storage")
+	absStoragePath, errFile := filepath.Abs(storagePath)
+	if errFile != nil {
+		log.Fatal(errFile)
+	}
+
+	db, err := badger.Open(badger.DefaultOptions(absStoragePath))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -188,7 +195,7 @@ func fnEntitySelect(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, 
 					rows.Val = append(rows.Val, entityHash)
 				}
 			} else {
-				log.Printf(err.Error())
+				log.Print(err.Error())
 			}
 		}
 		return nil
