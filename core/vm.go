@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/glycerine/zygomys/zygo"
+	"github.com/seapvnk/qokl/parser"
 )
 
 type ZygResult struct {
@@ -28,7 +29,7 @@ func NewVM() *VM {
 func (vm *VM) AddVariables(variables map[string]any) {
 	if variables != nil {
 		for k, v := range variables {
-			vm.environment.AddGlobal(k, toSexp(vm.environment, v))
+			vm.environment.AddGlobal(k, parser.ToSexp(vm.environment, v))
 		}
 	}
 }

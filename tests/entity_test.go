@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/seapvnk/qokl/core"
 	"github.com/seapvnk/qokl/server"
+	"github.com/seapvnk/qokl/storage"
 )
 
 func setupTestDB(t *testing.T) http.Handler {
@@ -19,7 +19,7 @@ func setupTestDB(t *testing.T) http.Handler {
 
 // Checks if insert can be performed
 func TestDBCanInsert(t *testing.T) {
-	core.OpenDB("./.storage")
+	storage.OpenDB("./.storage")
 	defer os.RemoveAll("./.storage")
 	router := setupTestDB(t)
 
@@ -77,7 +77,7 @@ func TestDBCanInsert(t *testing.T) {
 
 // Check if select works and can filter values
 func TestDBQueryFilterReturnsOnlyOneResult(t *testing.T) {
-	core.OpenDB("./.storage")
+	storage.OpenDB("./.storage")
 	defer os.RemoveAll("./.storage")
 	router := setupTestDB(t)
 
@@ -117,5 +117,60 @@ func TestDBQueryFilterReturnsOnlyOneResult(t *testing.T) {
 
 	if name, ok := result[0]["name"].(string); !ok || name != "Pedro" {
 		t.Errorf("Expected result name to be Pedro, got %v", result[0]["name"])
+	}
+}
+
+func TestDBEntityByIDReturnsCorrectData(t *testing.T) {
+	storage.OpenDB("./.storage")
+	defer os.RemoveAll("./.storage")
+	router := setupTestDB(t)
+
+	// Insert entity
+	insertPayload := `(insert %(admin user) name: "Pedro" age: 23)`
+	insertReq := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(insertPayload)))
+	insertResp := httptest.NewRecorder()
+	router.ServeHTTP(insertResp, insertReq)
+
+	if insertResp.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK on insert, got %d", insertResp.Code)
+	}
+
+	var insertBody map[string]any
+	err := json.NewDecoder(insertResp.Body).Decode(&insertBody)
+	if err != nil {
+		t.Fatalf("Error decoding insert response: %v", err)
+	}
+
+	id, ok := insertBody["id"].(string)
+	if !ok || id == "" {
+		t.Fatalf("Expected id to be a non-empty string, got: %v", insertBody["id"])
+	}
+
+	// Query entity by ID
+	queryPayload := "(entity \"" + id + "\")"
+	queryReq := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(queryPayload)))
+	queryResp := httptest.NewRecorder()
+	router.ServeHTTP(queryResp, queryReq)
+
+	if queryResp.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK on entity lookup, got %d, reason: %s", queryResp.Code, queryResp.Body.String())
+	}
+
+	var entity map[string]any
+	err = json.NewDecoder(queryResp.Body).Decode(&entity)
+	if err != nil {
+		t.Fatalf("Error decoding entity response: %v", err)
+	}
+
+	if entity["id"] != id {
+		t.Errorf("Expected id to be %s, got %v", id, entity["id"])
+	}
+
+	if name, ok := entity["name"].(string); !ok || name != "Pedro" {
+		t.Errorf("Expected name to be Pedro, got %v", entity["name"])
+	}
+
+	if age, ok := entity["age"].(float64); !ok || age != 23 {
+		t.Errorf("Expected age to be 23, got %v", entity["age"])
 	}
 }

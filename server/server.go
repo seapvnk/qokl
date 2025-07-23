@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/seapvnk/qokl/core"
+	"github.com/seapvnk/qokl/parser"
 )
 
 type Server struct {
@@ -61,7 +62,7 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if result.Error == nil {
-		response, _ := core.SexpToGo(result.Value)
+		response, _ := parser.SexpToGo(result.Value)
 		json.NewEncoder(w).Encode(response)
 	} else {
 		response := ErrorResponse{Error: result.Error.Error()}

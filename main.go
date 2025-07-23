@@ -5,6 +5,7 @@ import (
 
 	"github.com/seapvnk/qokl/core"
 	"github.com/seapvnk/qokl/server"
+	"github.com/seapvnk/qokl/storage"
 	"github.com/seapvnk/qokl/tasks"
 )
 
@@ -22,9 +23,9 @@ func main() {
 
 	// Setup kv store and entity database
 	core.OpenStore()
-	core.OpenDB(baseDir)
+	storage.OpenDB(baseDir)
 	defer core.CloseStore()
-	defer core.CloseDB()
+	defer storage.CloseDB()
 
 	// run server
 	srv := server.New(baseDir)

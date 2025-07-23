@@ -1,4 +1,4 @@
-package core
+package parser
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/glycerine/zygomys/zygo"
 )
 
-func toSexp(env *zygo.Zlisp, val interface{}) zygo.Sexp {
+func ToSexp(env *zygo.Zlisp, val interface{}) zygo.Sexp {
 	switch v := val.(type) {
 	case string:
 		return &zygo.SexpStr{S: v}
@@ -30,7 +30,7 @@ func toSexp(env *zygo.Zlisp, val interface{}) zygo.Sexp {
 		if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array {
 			arr := make([]zygo.Sexp, rv.Len())
 			for i := 0; i < rv.Len(); i++ {
-				arr[i] = toSexp(env, rv.Index(i).Interface())
+				arr[i] = ToSexp(env, rv.Index(i).Interface())
 			}
 			return &zygo.SexpArray{Val: arr}
 		}
@@ -47,7 +47,7 @@ func toSexp(env *zygo.Zlisp, val interface{}) zygo.Sexp {
 				}
 				valInterface := rv.MapIndex(key).Interface()
 				keySexp := env.MakeSymbol(k)
-				valSexp := toSexp(env, valInterface)
+				valSexp := ToSexp(env, valInterface)
 				err := hash.HashSet(keySexp, valSexp)
 				if err != nil {
 					panic(fmt.Sprintf("error setting hash key %q: %v", k, err))

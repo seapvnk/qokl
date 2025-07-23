@@ -1,4 +1,4 @@
-package core
+package storage
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 
 	badger "github.com/dgraph-io/badger/v4"
 	"github.com/glycerine/zygomys/zygo"
+	"github.com/seapvnk/qokl/parser"
 )
 
 // query/storage patterns
@@ -75,7 +76,7 @@ func retrieveEntity(env *zygo.Zlisp, objID string) *zygo.SexpHash {
 					return nil
 				}
 				keySexp := env.MakeSymbol(key)
-				valSexp := toSexp(env, itemValue.Value)
+				valSexp := parser.ToSexp(env, itemValue.Value)
 				entityHash.HashSet(keySexp, valSexp)
 				keysFound++
 				return nil
@@ -86,7 +87,7 @@ func retrieveEntity(env *zygo.Zlisp, objID string) *zygo.SexpHash {
 	})
 
 	if keysFound != 0 {
-		entityHash.HashSet(env.MakeSymbol("id"), toSexp(env, objID))
+		entityHash.HashSet(env.MakeSymbol("id"), parser.ToSexp(env, objID))
 	}
 
 	return &entityHash
