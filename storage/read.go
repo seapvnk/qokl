@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	badger "github.com/dgraph-io/badger/v4"
@@ -9,29 +10,26 @@ import (
 	"github.com/seapvnk/qokl/parser"
 )
 
-// query/storage patterns
-func makeEntityEntry(entityID string) []byte {
-	return []byte("entities." + entityID)
-}
+func entityExists(txn *badger.Txn, objID string) bool {
+	item, err := txn.Get(makeEntityEntry(objID))
+	if err != nil {
+		return false
+	}
 
-func makeTagEntry(tagName string, entityID string) []byte {
-	return []byte("tags." + tagName + "." + entityID)
-}
+	err = item.Value(func(val []byte) error {
+		if string(val) != "1" {
+			return errors.New("")
+		}
 
-func makeEntityComponentEntry(componentName string, entityID string) []byte {
-	return []byte("components." + entityID + "." + componentName)
-}
+		return nil
+	})
 
-func makeEntityComponentQuery(entityID string) []byte {
-	return []byte("components." + entityID + ".")
-}
-
-func makeTagQuery(tagName string) []byte {
-	return []byte("tags." + tagName + ".")
+	return err == nil
 }
 
 func getEntityIDFromQuery(arg zygo.Sexp) string {
 	var objID string
+
 	// extract obj id
 	switch val := arg.(type) {
 	case *zygo.SexpStr:

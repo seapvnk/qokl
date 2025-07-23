@@ -1,15 +1,12 @@
 package storage
 
 import (
-	"encoding/json"
 	"log"
 	"path/filepath"
 	"strings"
 
 	badger "github.com/dgraph-io/badger/v4"
 	"github.com/glycerine/zygomys/zygo"
-	"github.com/google/uuid"
-	"github.com/seapvnk/qokl/parser"
 )
 
 /*
@@ -63,81 +60,6 @@ func CloseDB() {
 
 type StoredValue struct {
 	Value any `json:"value"`
-}
-
-// FnEntityInsert insert an entity at database
-// Lisp (insert %(admin user) name: "Pedro" age: 23)
-func FnEntityInsert(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
-	if len(args) < 3 || len(args)%2 == 0 {
-		return zygo.SexpNull, zygo.WrongNargs
-	}
-
-	objID := uuid.NewString()
-	obj := make(map[string]interface{})
-
-	err := edb.Update(func(txn *badger.Txn) error {
-		// insert entry
-		err := txn.Set(makeEntityEntry(objID), []byte("1"))
-		if err != nil {
-			return err
-		}
-
-		// add tags
-		tagArg := args[0]
-		switch tagArg := tagArg.(type) {
-		case *zygo.SexpSymbol:
-			tagName := tagArg.Name()
-			txn.Set(makeTagEntry(tagName, objID), []byte("1"))
-		case *zygo.SexpPair:
-			pair := tagArg
-			ok := true
-			for ok {
-				var sym *zygo.SexpSymbol
-				sym, ok = pair.Head.(*zygo.SexpSymbol)
-				if ok {
-					tagName := sym.Name()
-					txn.Set(makeTagEntry(tagName, objID), []byte("1"))
-				}
-
-				pair, ok = pair.Tail.(*zygo.SexpPair)
-			}
-		}
-
-		// store object keys
-		for i := 1; i < len(args)-1; i += 2 {
-			key := args[i]
-			value := args[i+1]
-			keySym, ok := key.(*zygo.SexpSymbol)
-			if ok {
-				goVal, parserError := parser.SexpToGo(value)
-				if parserError != nil {
-					continue
-				}
-
-				data, err := json.Marshal(StoredValue{
-					Value: goVal,
-				})
-
-				if err != nil {
-					continue
-				}
-
-				err = txn.Set(makeEntityComponentEntry(keySym.Name(), objID), data)
-				if err == nil {
-					obj[keySym.Name()] = goVal
-				}
-			}
-		}
-
-		return err
-	})
-
-	if err != nil {
-		return zygo.SexpNull, err
-	}
-
-	obj["id"] = objID
-	return parser.ToSexp(env, obj), nil
 }
 
 // FnEntityGet an entity at database

@@ -174,3 +174,68 @@ func TestDBEntityByIDReturnsCorrectData(t *testing.T) {
 		t.Errorf("Expected age to be 23, got %v", entity["age"])
 	}
 }
+
+func TestAddTagAndSelectByTag(t *testing.T) {
+	storage.OpenDB("./.storage")
+	defer os.RemoveAll("./.storage")
+	router := setupTestDB(t)
+
+	// insert a user
+	insertPayload := `(insert user: name: "Someone" age: 30)`
+	insertReq := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(insertPayload)))
+	insertResp := httptest.NewRecorder()
+	router.ServeHTTP(insertResp, insertReq)
+
+	if insertResp.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK on insert, got %d", insertResp.Code)
+	}
+
+	var insertBody map[string]any
+	err := json.NewDecoder(insertResp.Body).Decode(&insertBody)
+	if err != nil {
+		t.Fatalf("Failed to decode insert response: %v", err)
+	}
+
+	id, ok := insertBody["id"].(string)
+	if !ok || id == "" {
+		t.Fatalf("Expected id to be a non-empty string, got: %v", insertBody["id"])
+	}
+
+	// tag user as admin
+	addTagPayload := `(addTag admin: "` + id + `")`
+	addTagReq := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(addTagPayload)))
+	addTagResp := httptest.NewRecorder()
+	router.ServeHTTP(addTagResp, addTagReq)
+
+	if addTagResp.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK on addTag, got %d", addTagResp.Code)
+	}
+
+	// check if query admins returns the correct user
+	selectPayload := `(select admin: (fn [e] (== (hget e %age) 30)))`
+	selectReq := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(selectPayload)))
+	selectResp := httptest.NewRecorder()
+	router.ServeHTTP(selectResp, selectReq)
+
+	if selectResp.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK on select, got %d", selectResp.Code)
+	}
+
+	var results []map[string]any
+	err = json.NewDecoder(selectResp.Body).Decode(&results)
+	if err != nil {
+		t.Fatalf("Failed to decode select response: %v", err)
+	}
+
+	found := false
+	for _, entity := range results {
+		if entityID, ok := entity["id"].(string); ok && entityID == id {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Errorf("Expected entity with id %s to be in the select result, but it was not found", id)
+	}
+}

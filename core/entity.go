@@ -9,6 +9,7 @@ func (vm *VM) UseEntityModule() *VM {
 	vm.environment.AddFunction("insert", storage.FnEntityInsert)
 	vm.environment.AddFunction("entity", storage.FnEntityGet)
 	vm.environment.AddFunction("select", storage.FnEntitySelect)
+	vm.environment.AddFunction("addTag", storage.FnAddTag)
 
 	return vm
 }
