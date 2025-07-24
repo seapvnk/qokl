@@ -3,10 +3,8 @@ package storage
 import (
 	"log"
 	"path/filepath"
-	"strings"
 
 	badger "github.com/dgraph-io/badger/v4"
-	"github.com/glycerine/zygomys/zygo"
 )
 
 /*
@@ -62,59 +60,4 @@ type StoredValue struct {
 	Value any `json:"value"`
 }
 
-// FnEntityGet an entity at database
-// Lisp (entity myEntity)
-func FnEntityGet(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
-	if len(args) != 1 {
-		return zygo.SexpNull, zygo.WrongNargs
-	}
 
-	objID := getEntityIDFromQuery(args[0])
-	entityHash := retrieveEntity(env, objID)
-
-	return entityHash, nil
-}
-
-// FnEntitySelect return all entities that matches
-// Lisp (select admin: (Fn [e] (and (> (hget %age) 22) (= (hget name) "Pedro"))))
-func FnEntitySelect(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
-	if len(args) != 2 {
-		return zygo.SexpNull, zygo.WrongNargs
-	}
-
-	tag, tagOk := args[0].(*zygo.SexpSymbol)
-	if !tagOk {
-		return zygo.SexpNull, zygo.WrongNargs
-	}
-
-	predicate, predicateOk := args[1].(*zygo.SexpFunction)
-	if !predicateOk {
-		return zygo.SexpNull, zygo.WrongNargs
-	}
-
-	rows := &zygo.SexpArray{}
-
-	edb.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
-		query := makeTagQuery(tag.Name())
-		for it.Seek(query); it.ValidForPrefix(query); it.Next() {
-			item := it.Item()
-			key := strings.Replace(string(item.Key()), string(query), "", int(1))
-
-			entityHash := retrieveEntity(env, key)
-			result, err := env.Apply(predicate, []zygo.Sexp{entityHash})
-			if err == nil {
-				result, isBool := result.(*zygo.SexpBool)
-				if isBool && result.Val {
-					rows.Val = append(rows.Val, entityHash)
-				}
-			} else {
-				log.Print(err.Error())
-			}
-		}
-		return nil
-	})
-
-	return rows, nil
-}
