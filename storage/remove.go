@@ -8,7 +8,6 @@ import (
 	"github.com/seapvnk/qokl/parser"
 )
 
-
 // FnRelationship add tag to an entity
 // Lisp (deleteEntity myEntity)
 func FnDeleteEntity(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
@@ -86,7 +85,7 @@ func removeRelationshipWith(txn *badger.Txn, rel string, e1 string, e2 string) e
 	if err = txn.Delete(e1Side); err != nil {
 		return err
 	}
-	
+
 	e2Side := makeRelationshipEntry(rel, e2, e1)
 	if err = txn.Delete(e2Side); err != nil {
 		return err
@@ -96,7 +95,7 @@ func removeRelationshipWith(txn *badger.Txn, rel string, e1 string, e2 string) e
 	if err = txn.Delete(e1SideMeta); err != nil {
 		return err
 	}
-	
+
 	e2SideMeta := makeRelationshipMetaEntry(rel, e2, e1)
 	if err = txn.Delete(e2SideMeta); err != nil {
 		return err

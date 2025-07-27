@@ -2,12 +2,12 @@ package tests
 
 import (
 	"os"
-	"testing"
 	"path/filepath"
+	"testing"
 
+	"github.com/glycerine/zygomys/zygo"
 	"github.com/seapvnk/qokl/core"
 	"github.com/seapvnk/qokl/storage"
-	"github.com/glycerine/zygomys/zygo"
 )
 
 // Checks if insert can be performed
