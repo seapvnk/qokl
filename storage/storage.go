@@ -36,7 +36,7 @@ import (
 
 var edb *badger.DB
 
-func OpenDB(baseDir string) {
+func OpenDB(baseDir string) string {
 	var err error
 	storagePath := filepath.Join(baseDir, "/.storage")
 	absStoragePath, errFile := filepath.Abs(storagePath)
@@ -50,6 +50,7 @@ func OpenDB(baseDir string) {
 	}
 
 	edb = db
+	return absStoragePath
 }
 
 func CloseDB() {

@@ -13,6 +13,10 @@ func makeRelationshipMetaEntry(rel string, e1 string, e2 string) []byte {
 	return []byte("relationships." + rel + "." + e1 + "." + e2 + ".meta")
 }
 
+func makeRelationshipEntryOneSide(rel string, e1 string) []byte {
+	return []byte("relationships." + rel + "." + e1 + ".")
+}
+
 func makeTagEntry(tagName string, entityID string) []byte {
 	return []byte("tags." + tagName + "." + entityID)
 }

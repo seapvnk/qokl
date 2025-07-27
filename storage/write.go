@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"fmt"
 	"errors"
 
 	badger "github.com/dgraph-io/badger/v4"
@@ -17,7 +18,9 @@ func FnRelationship(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, 
 		return zygo.SexpNull, zygo.WrongNargs
 	}
 
-	entities := args[:1]
+	e1 := getEntityIDFromQuery(args[0])
+	e2 := getEntityIDFromQuery(args[1])
+	entities := []string{e1, e2}
 
 	// parse rel type
 	relTypeSexpSym, relTypeOk := args[2].(*zygo.SexpSymbol)
@@ -34,8 +37,8 @@ func FnRelationship(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, 
 	rel := relSexpSym.Name()
 
 	// parse rel data
-	relData := parser.ToSexp(env, true)
-	
+	var relData zygo.Sexp
+	relData = zygo.SexpNull
 	if len(args) >= 5 {
 		relData = args[4]
 	}
@@ -52,19 +55,8 @@ func FnRelationship(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, 
 }
 
 // addRelationship add relationship between two entities
-func addRelationship(txn *badger.Txn, entityIDs []zygo.Sexp, relType string, rel string, relData zygo.Sexp) error {
-	e1Sexp, e1Ok := entityIDs[0].(*zygo.SexpStr)
-	if !e1Ok {
-		return errors.New("type error in add relationship")
-	}
-
-	e2Sexp, e2Ok := entityIDs[1].(*zygo.SexpStr)
-	if !e2Ok {
-		return errors.New("type error in add relationship")
-	}
-
-	e1, e2 := e1Sexp.S, e2Sexp.S
-	relBytes := []byte(rel)
+func addRelationship(txn *badger.Txn, entityIDs []string, relType string, rel string, relData zygo.Sexp) error {
+	e1, e2 := entityIDs[0], entityIDs[1]
 	var (
 		entry1 *badger.Entry
 		entry1Meta *badger.Entry
@@ -72,42 +64,52 @@ func addRelationship(txn *badger.Txn, entityIDs []zygo.Sexp, relType string, rel
 		entry2Meta *badger.Entry
 	)
 
-	value, valueOk := relData.(*zygo.SexpHash)
-	if !valueOk {
-		return errors.New("error parsing relationship data")
-	}
+	var (
+		data []byte
+		err error
+	)
+	switch value := relData.(type) {
+	case *zygo.SexpSentinel:
+		data, err = json.Marshal(StoredValue{
+			Value: nil,
+		})
 
-	goVal, parserError := parser.SexpToGo(value)
-	if parserError != nil {
-		return parserError
-	}
-
-	data, err := json.Marshal(StoredValue{
-		Value: goVal,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	switch rel {
-	case "belongs":
-		entry1 = badger.NewEntry(makeRelationshipEntry("belongs", e1, e2), relBytes)
-		entry2 = badger.NewEntry(makeRelationshipEntry("has", e1, e2), relBytes)
-		entry1Meta = badger.NewEntry(makeRelationshipMetaEntry("belongs", e1, e2), data)
-		entry2Meta = badger.NewEntry(makeRelationshipMetaEntry("has", e1, e2), data)
-	case "has":
-		entry1 = badger.NewEntry(makeRelationshipEntry("has", e1, e2), relBytes)
-		entry2 = badger.NewEntry(makeRelationshipEntry("belongs", e1, e2), relBytes)
-		entry1Meta = badger.NewEntry(makeRelationshipMetaEntry("has", e1, e2), data)
-		entry2Meta = badger.NewEntry(makeRelationshipMetaEntry("belongs", e1, e2), data)
-	case "are":
-		entry1 = badger.NewEntry(makeRelationshipEntry("are", e1, e2), relBytes)
-		entry2 = badger.NewEntry(makeRelationshipEntry("are", e1, e2), relBytes)
-		entry1Meta = badger.NewEntry(makeRelationshipMetaEntry("are", e1, e2), data)
-		entry2Meta = badger.NewEntry(makeRelationshipMetaEntry("are", e1, e2), data)
+		if err != nil {
+			return err
+		}
 	default:
-		return errors.New("undefined relationship type")
+		goVal, parserError := parser.SexpToGo(value)
+		if parserError != nil {
+			return parserError
+		}
+
+		data, err = json.Marshal(StoredValue{
+			Value: goVal,
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
+	switch relType {
+	case "belongs":
+		entry1 = badger.NewEntry(makeRelationshipEntry(rel, e1, e2), []byte("belongs"))
+		entry2 = badger.NewEntry(makeRelationshipEntry(rel, e2, e1), []byte("has"))
+		entry1Meta = badger.NewEntry(makeRelationshipMetaEntry(rel, e1, e2), data)
+		entry2Meta = badger.NewEntry(makeRelationshipMetaEntry(rel, e2, e1), data)
+	case "has":
+		entry2 = badger.NewEntry(makeRelationshipEntry(rel, e2, e1), []byte("belongs"))
+		entry1 = badger.NewEntry(makeRelationshipEntry(rel, e1, e2), []byte("has"))
+		entry2Meta = badger.NewEntry(makeRelationshipMetaEntry(rel, e2, e1), data)
+		entry1Meta = badger.NewEntry(makeRelationshipMetaEntry(rel, e1, e2), data)
+	case "are":
+		entry1 = badger.NewEntry(makeRelationshipEntry(rel, e1, e2), []byte("are"))
+		entry2 = badger.NewEntry(makeRelationshipEntry(rel, e2, e1), []byte("are"))
+		entry1Meta = badger.NewEntry(makeRelationshipMetaEntry(rel, e1, e2), data)
+		entry2Meta = badger.NewEntry(makeRelationshipMetaEntry(rel, e2, e1), data)
+	default:
+		return fmt.Errorf("undefined relationship type: %s", rel)
 	}
 
 	txn.SetEntry(entry1)
@@ -125,12 +127,7 @@ func FnAddTag(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error)
 		return zygo.SexpNull, zygo.WrongNargs
 	}
 
-	objIDSexp, ok := args[1].(*zygo.SexpStr)
-	if !ok {
-		return parser.SignalErr(env, zygo.WrongNargs)
-	}
-
-	objID := objIDSexp.S
+	objID := getEntityIDFromQuery(args[1])
 	err := edb.Update(func(txn *badger.Txn) error {
 		err := addTags(txn, env, objID, args[0])
 		return err

@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"log"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -24,6 +23,77 @@ func FnEntityGet(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, err
 	return entityHash, nil
 }
 
+// FnEntityRelationships fetch every which meet criterea
+// Lisp (relationshipsOf myEntity are: %friends)
+func FnEntityRelationships(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
+	if len(args) != 3 {
+		return parser.SignalWrongArgs()
+	}
+
+	objID := getEntityIDFromQuery(args[0])
+	relType, relTypeOk := args[1].(*zygo.SexpSymbol)
+	if !relTypeOk {
+		return parser.SignalErr(env, errors.New("relation type must be a symbol"))
+	}
+
+	rel, relOk := args[2].(*zygo.SexpSymbol)
+	if !relOk {
+		return parser.SignalErr(env, errors.New("rel must be a symbol"))
+	}
+
+	rows := &zygo.SexpArray{}
+
+	edb.View(func(txn *badger.Txn) error {
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		query := makeRelationshipEntryOneSide(rel.Name(), objID)
+		for it.Seek(query); it.ValidForPrefix(query); it.Next() {
+			item := it.Item()
+			key := strings.Replace(string(item.Key()), string(query), "", int(1))
+			skip := false
+			item.Value(func(v []byte) error {
+				skip = string(v) != relType.Name()
+				return nil
+			})
+
+			if skip {
+				continue
+			}
+
+			relMeta := getRelationshipMeta(env, txn, rel.Name(), objID, key)
+			rows.Val = append(rows.Val, relMeta)
+		}
+		return nil
+	})
+
+	return rows, nil
+}
+
+func getRelationshipMeta(env *zygo.Zlisp, txn *badger.Txn, relName string, e1 string, e2 string) zygo.Sexp {
+	item, err := txn.Get(makeRelationshipMetaEntry(relName, e1, e2))
+	if err != nil {
+		return zygo.SexpNull
+	}
+
+	var relationshipMeta zygo.Sexp
+
+	err = item.Value(func(v []byte) error {
+		var itemValue StoredValue
+		err := json.Unmarshal(v, &itemValue)
+		if err != nil {
+			return err
+		}
+		relationshipMeta = parser.ToSexp(env, itemValue.Value)
+		return nil
+	})
+
+	if err != nil {
+		return zygo.SexpNull
+	}
+
+	return relationshipMeta
+}
+
 // FnEntitySelect return all entities that matches
 // Lisp (select admin: (Fn [e] (and (> (hget %age) 22) (= (hget name) "Pedro"))))
 func FnEntitySelect(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
@@ -42,7 +112,6 @@ func FnEntitySelect(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, 
 	}
 
 	rows := &zygo.SexpArray{}
-
 	edb.View(func(txn *badger.Txn) error {
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
@@ -50,22 +119,27 @@ func FnEntitySelect(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, 
 		for it.Seek(query); it.ValidForPrefix(query); it.Next() {
 			item := it.Item()
 			key := strings.Replace(string(item.Key()), string(query), "", int(1))
-
-			entityHash := retrieveEntity(env, key)
-			result, err := env.Apply(predicate, []zygo.Sexp{entityHash})
-			if err == nil {
-				result, isBool := result.(*zygo.SexpBool)
-				if isBool && result.Val {
-					rows.Val = append(rows.Val, entityHash)
-				}
-			} else {
-				log.Print(err.Error())
-			}
+			applyQueryOnRow(env, rows, key, predicate)
 		}
 		return nil
 	})
 
 	return rows, nil
+}
+
+func applyQueryOnRow(env *zygo.Zlisp, rows *zygo.SexpArray, key string, predicate *zygo.SexpFunction) {
+	entityHash := retrieveEntity(env, key)
+	result, err := env.Apply(predicate, []zygo.Sexp{entityHash})
+	if err == nil {
+		result, isBool := result.(*zygo.SexpBool)
+		if !isBool {
+			return
+		}
+
+		if result.Val {
+			rows.Val = append(rows.Val, entityHash)
+		}
+	}
 }
 
 func entityExists(txn *badger.Txn, objID string) bool {
