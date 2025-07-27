@@ -116,6 +116,9 @@ func addRelationship(txn *badger.Txn, entityIDs []string, relType string, rel st
 	txn.SetEntry(entry2)
 	txn.SetEntry(entry1Meta)
 	txn.SetEntry(entry2Meta)
+	
+	txn.Set(makeRelationshipTagEntry(rel, e1), []byte("1"))
+	txn.Set(makeRelationshipTagEntry(rel, e2), []byte("1"))
 
 	return nil
 }
@@ -159,6 +162,7 @@ func addTags(txn *badger.Txn, env *zygo.Zlisp, objID string, tagArg zygo.Sexp) e
 			if ok {
 				tagName := sym.Name()
 				txn.Set(makeTagEntry(tagName, objID), []byte("1"))
+				txn.Set(makeTagEntryReverse(tagName, objID), []byte("1"))
 			}
 
 			pair, ok = pair.Tail.(*zygo.SexpPair)
