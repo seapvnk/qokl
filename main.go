@@ -5,14 +5,11 @@ import (
 
 	"github.com/seapvnk/qokl/core"
 	"github.com/seapvnk/qokl/server"
+	"github.com/seapvnk/qokl/storage"
 	"github.com/seapvnk/qokl/tasks"
 )
 
 func main() {
-	// Setup kv store
-	core.OpenStore()
-	defer core.CloseStore()
-
 	// Init server
 	baseDir := "./"
 	if len(os.Args) > 1 {
@@ -23,6 +20,12 @@ func main() {
 	if len(os.Args) > 2 {
 		addr = os.Args[2]
 	}
+
+	// Setup kv store and entity database
+	core.OpenStore()
+	storage.OpenDB(baseDir)
+	defer core.CloseStore()
+	defer storage.CloseDB()
 
 	// run server
 	srv := server.New(baseDir)

@@ -6,6 +6,7 @@ import (
 
 	badger "github.com/dgraph-io/badger/v4"
 	"github.com/glycerine/zygomys/zygo"
+	"github.com/seapvnk/qokl/parser"
 )
 
 // Store/Cache module setup
@@ -77,7 +78,7 @@ func fnStoreGetCache(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp,
 		return zygo.SexpNull, nil
 	}
 
-	return toSexp(env, val), nil
+	return parser.ToSexp(env, val), nil
 }
 
 // fnStoreDeleteCache removes a key from the cache
