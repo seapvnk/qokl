@@ -60,5 +60,3 @@ func CloseDB() {
 type StoredValue struct {
 	Value any `json:"value"`
 }
-
-

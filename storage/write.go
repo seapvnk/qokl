@@ -2,8 +2,8 @@ package storage
 
 import (
 	"encoding/json"
-	"fmt"
 	"errors"
+	"fmt"
 
 	badger "github.com/dgraph-io/badger/v4"
 	"github.com/glycerine/zygomys/zygo"
@@ -58,15 +58,15 @@ func FnRelationship(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, 
 func addRelationship(txn *badger.Txn, entityIDs []string, relType string, rel string, relData zygo.Sexp) error {
 	e1, e2 := entityIDs[0], entityIDs[1]
 	var (
-		entry1 *badger.Entry
+		entry1     *badger.Entry
 		entry1Meta *badger.Entry
-		entry2 *badger.Entry
+		entry2     *badger.Entry
 		entry2Meta *badger.Entry
 	)
 
 	var (
 		data []byte
-		err error
+		err  error
 	)
 	switch value := relData.(type) {
 	case *zygo.SexpSentinel:
@@ -117,6 +117,9 @@ func addRelationship(txn *badger.Txn, entityIDs []string, relType string, rel st
 	txn.SetEntry(entry1Meta)
 	txn.SetEntry(entry2Meta)
 
+	txn.Set(makeRelationshipTagEntry(rel, e1), []byte("1"))
+	txn.Set(makeRelationshipTagEntry(rel, e2), []byte("1"))
+
 	return nil
 }
 
@@ -159,6 +162,7 @@ func addTags(txn *badger.Txn, env *zygo.Zlisp, objID string, tagArg zygo.Sexp) e
 			if ok {
 				tagName := sym.Name()
 				txn.Set(makeTagEntry(tagName, objID), []byte("1"))
+				txn.Set(makeTagEntryReverse(tagName, objID), []byte("1"))
 			}
 
 			pair, ok = pair.Tail.(*zygo.SexpPair)

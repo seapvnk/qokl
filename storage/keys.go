@@ -9,8 +9,16 @@ func makeRelationshipEntry(rel string, e1 string, e2 string) []byte {
 	return []byte("relationships." + rel + "." + e1 + "." + e2)
 }
 
+func makeRelationshipTagEntry(rel string, e1 string) []byte {
+	return []byte("relationshipst." + e1 + "." + rel)
+}
+
+func makeRelationshipTagQuery(e1 string) []byte {
+	return []byte("relationshipst." + e1 + ".")
+}
+
 func makeRelationshipMetaEntry(rel string, e1 string, e2 string) []byte {
-	return []byte("relationships." + rel + "." + e1 + "." + e2 + ".meta")
+	return []byte("relationshipsm." + rel + "." + e1 + "." + e2)
 }
 
 func makeRelationshipEntryOneSide(rel string, e1 string) []byte {
@@ -19,6 +27,14 @@ func makeRelationshipEntryOneSide(rel string, e1 string) []byte {
 
 func makeTagEntry(tagName string, entityID string) []byte {
 	return []byte("tags." + tagName + "." + entityID)
+}
+
+func makeTagEntryReverse(tagName string, entityID string) []byte {
+	return []byte("tagsr." + entityID + "." + tagName)
+}
+
+func makeTagEntryReverseEntity(entityID string) []byte {
+	return []byte("tagsr." + entityID + ".")
 }
 
 func makeEntityComponentEntry(componentName string, entityID string) []byte {

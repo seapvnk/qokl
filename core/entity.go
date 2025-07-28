@@ -7,6 +7,8 @@ import (
 // Entity module setup
 func (vm *VM) UseEntityModule() *VM {
 	vm.environment.AddFunction("insert", storage.FnEntityInsert)
+	vm.environment.AddFunction("deleteEntity", storage.FnDeleteEntity)
+	vm.environment.AddFunction("deleteAll", storage.FnEntityDeleteAll)
 	vm.environment.AddFunction("entity", storage.FnEntityGet)
 	vm.environment.AddFunction("select", storage.FnEntitySelect)
 	vm.environment.AddFunction("addTag", storage.FnAddTag)
