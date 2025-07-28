@@ -28,4 +28,14 @@
      (relationshipsOf entryRel has: %aRelationship))
 (assert (== 0 (len relQuery)))
 
+
+(begin
+  (insert boilerplate: name: "e1")
+  (insert boilerplate: name: "e2")
+  (insert boilerplate: name: "e3"))
+(def deletedCount
+     (deleteAll boilerplate: (fn [e] (== 1 1))))
+(print deletedCount)
+(assert (== 3 deletedCount))
+
 true

@@ -119,7 +119,7 @@ func FnEntitySelect(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, 
 		for it.Seek(query); it.ValidForPrefix(query); it.Next() {
 			item := it.Item()
 			key := strings.Replace(string(item.Key()), string(query), "", int(1))
-			applyQueryOnRow(env, rows, key, predicate)
+			appendQueryToRow(env, rows, key, predicate)
 		}
 		return nil
 	})
@@ -127,7 +127,7 @@ func FnEntitySelect(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, 
 	return rows, nil
 }
 
-func applyQueryOnRow(env *zygo.Zlisp, rows *zygo.SexpArray, key string, predicate *zygo.SexpFunction) {
+func appendQueryToRow(env *zygo.Zlisp, rows *zygo.SexpArray, key string, predicate *zygo.SexpFunction) {
 	entityHash := retrieveEntity(env, key)
 	result, err := env.Apply(predicate, []zygo.Sexp{entityHash})
 	if err == nil {

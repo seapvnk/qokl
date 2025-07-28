@@ -8,6 +8,59 @@ import (
 	"github.com/seapvnk/qokl/parser"
 )
 
+// FnEntityDeleteAll return all entities that matches
+// Lisp (deleteAll admin: (Fn [e] (and (> (hget %age) 22) (= (hget name) "Pedro"))))
+func FnEntityDeleteAll(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
+	if len(args) != 2 {
+		return parser.SignalWrongArgs()
+	}
+
+	tag, tagOk := args[0].(*zygo.SexpSymbol)
+	if !tagOk {
+		return parser.SignalWrongArgs()
+	}
+
+	predicate, predicateOk := args[1].(*zygo.SexpFunction)
+	if !predicateOk {
+		return parser.SignalWrongArgs()
+	}
+
+	count := int64(0)
+	edb.View(func(txn *badger.Txn) error {
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		query := makeTagQuery(tag.Name())
+		for it.Seek(query); it.ValidForPrefix(query); it.Next() {
+			item := it.Item()
+			key := strings.Replace(string(item.Key()), string(query), "", int(1))
+			err := deleteRowInQuery(env, key, predicate)
+			if err == nil {
+				count++
+			}
+		}
+		return nil
+	})
+
+	return &zygo.SexpInt{Val: count}, nil
+}
+
+func deleteRowInQuery(env *zygo.Zlisp, key string, predicate *zygo.SexpFunction) error {
+	entityHash := retrieveEntity(env, key)
+	result, err := env.Apply(predicate, []zygo.Sexp{entityHash})
+	if err == nil {
+		result, isBool := result.(*zygo.SexpBool)
+		if !isBool {
+			return nil
+		}
+
+		if result.Val {
+			return deleteEntity(key)
+		}
+	}
+
+	return nil
+}
+
 // FnRelationship add tag to an entity
 // Lisp (deleteEntity myEntity)
 func FnDeleteEntity(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
@@ -16,6 +69,16 @@ func FnDeleteEntity(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, 
 	}
 
 	objID := getEntityIDFromQuery(args[0])
+	err := deleteEntity(objID)
+
+	if err != nil {
+		return parser.SignalErr(env, err)
+	}
+
+	return parser.SignalOk(env)
+}
+
+func deleteEntity(objID string) error {
 	err := edb.Update(func(txn *badger.Txn) error {
 		err := removeAllTags(txn, objID)
 		err = removeAllRelationships(txn, objID)
@@ -24,11 +87,7 @@ func FnDeleteEntity(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, 
 		return err
 	})
 
-	if err != nil {
-		return parser.SignalErr(env, err)
-	}
-
-	return parser.SignalOk(env)
+	return err
 }
 
 func removeEntityFields(txn *badger.Txn, objID string) error {
