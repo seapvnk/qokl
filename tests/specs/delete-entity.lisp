@@ -35,7 +35,6 @@
   (insert boilerplate: name: "e3"))
 (def deletedCount
      (deleteAll boilerplate: (fn [e] (== 1 1))))
-(print deletedCount)
 (assert (== 3 deletedCount))
 
 true
