@@ -3,10 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/seapvnk/qokl/core"
-	"github.com/seapvnk/qokl/server"
-	"github.com/seapvnk/qokl/storage"
-	"github.com/seapvnk/qokl/tasks"
+	"github.com/seapvnk/qokl/application"
 )
 
 func main() {
@@ -21,17 +18,11 @@ func main() {
 		addr = os.Args[2]
 	}
 
-	// Setup kv store and entity database
-	core.OpenStore()
-	storage.OpenDB(baseDir)
-	defer core.CloseStore()
-	defer storage.CloseDB()
+	// initialize application
+	app := application.New(baseDir, addr)
+	app.InitMemory()
+	defer app.CloseMemory()
 
 	// run server
-	srv := server.New(baseDir)
-	go srv.Start(addr)
-
-	// process tasks
-	listener := tasks.New(baseDir)
-	listener.Run()
+	app.Run()
 }

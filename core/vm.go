@@ -19,6 +19,7 @@ type VM struct {
 
 func NewVM() *VM {
 	env := zygo.NewZlisp()
+	env.StandardSetup()
 	vm := &VM{
 		environment: env,
 	}
