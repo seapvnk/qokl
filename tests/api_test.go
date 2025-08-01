@@ -34,6 +34,25 @@ func TestApiCanGet(t *testing.T) {
 	}
 }
 
+// Checks if can use imports
+func TestApiCanUseLib(t *testing.T) {
+	router := setupTestServer(t)
+
+	req := httptest.NewRequest("GET", "/api/with-package", nil)
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		t.Errorf("Expected status 200 OK, got %d", resp.Code)
+	}
+
+	expected := `{"add":4,"mul":4}`
+	if !strings.Contains(resp.Body.String(), expected) {
+		t.Errorf("Expected response to contain %q, got %q", expected, resp.Body.String())
+	}
+}
+
 // Checks if its possible to retrieve a url param
 func TestApiCanGetParam(t *testing.T) {
 	router := setupTestServer(t)
