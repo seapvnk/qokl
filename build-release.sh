@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -euox pipefail
 
 VERSION="$1"
 echo "building new version: $VERSION"
