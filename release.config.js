@@ -14,7 +14,7 @@ module.exports = {
       {
         assets: [
           'qokl-*.tar.gz',
-          { 'path': 'qokl-linux-amd64-${nextRelease.version}.tar.gz', 'label': 'linux 64 distribution' }
+          { 'path': 'qokl-linux-amd64-<%= nextRelease.version} %>.tar.gz', 'label': 'linux 64 distribution' }
         ],
       },
     ],
