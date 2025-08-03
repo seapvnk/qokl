@@ -8,6 +8,11 @@ GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o qokl .
 
 tar -czvf qokl-linux-amd64-$VERSION.tar.gz qokl
 
+if [[ -z "${DOCKER_USERNAME}" || -z "${DOCKER_PASSWORD}" ]]; then
+  echo "Error: DOCKER_USERNAME and DOCKER_PASSWORD must be set."
+  exit 1
+fi
+
 echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
 
 docker build -t seapvnk/qokl:$VERSION .
