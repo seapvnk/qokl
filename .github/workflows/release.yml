@@ -19,12 +19,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: node for sem release
+      - name: setup node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: dependencies
+      - name: setup sem release
         run: npm install semantic-release @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/github @semantic-release/exec
 
       - name: golang
