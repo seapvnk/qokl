@@ -1,0 +1,37 @@
+name: release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: node for sem release
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: dependencies
+        run: npm install semantic-release @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/github @semantic-release/exec
+
+      - name: golang
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: sem release
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: npx semantic-release
+
