@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	badger "github.com/dgraph-io/badger/v4"
-	"github.com/glycerine/zygomys/zygo"
+	"github.com/glycerine/zygomys/v9/zygo"
 )
 
 func queueKey(name string, index uint64) []byte {

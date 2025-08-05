@@ -3,7 +3,7 @@ package parser
 import (
 	"fmt"
 
-	"github.com/glycerine/zygomys/zygo"
+	"github.com/glycerine/zygomys/v9/zygo"
 )
 
 func SexpToGo(sexp zygo.Sexp) (interface{}, error) {

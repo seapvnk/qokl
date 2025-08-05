@@ -18,8 +18,8 @@ github.com/glycerine/greenpack v5.1.1+incompatible h1:fDr9i6MkSGZmAy4VXPfJhW+SyK
 github.com/glycerine/greenpack v5.1.1+incompatible/go.mod h1:us0jVISAESGjsEuLlAfCd5nkZm6W6WQF18HPuOecIg4=
 github.com/glycerine/liner v0.0.0-20160121172638-72909af234e0 h1:4ZegphJXBTc4uFQ08UVoWYmQXorGa+ipXetUj83sMBc=
 github.com/glycerine/liner v0.0.0-20160121172638-72909af234e0/go.mod h1:AqJLs6UeoC65dnHxyCQ6MO31P5STpjcmgaANAU+No8Q=
-github.com/glycerine/zygomys v5.1.2+incompatible h1:jmcdmA3XPxgfOunAXFpipE9LQoUL6eX6d2mhYyjV4GE=
-github.com/glycerine/zygomys v5.1.2+incompatible/go.mod h1:i3SPKZpmy9dwF/3iWrXJ/ZLyzZucegwypwOmqRkUUaQ=
+github.com/glycerine/zygomys/v9 v9.1.1 h1:vmWdMmVfLRjx1IKSqu99wQ9fSFMQ7VGWH/XFKJtDmxc=
+github.com/glycerine/zygomys/v9 v9.1.1/go.mod h1:hckAUIPikusS9epDmMmEkfXeOK2qvWhmeVK6Su8y/1k=
 github.com/go-chi/chi/v5 v5.2.2 h1:CMwsvRVTbXVytCk1Wd72Zy1LAsAh9GxMmSNWLHCG618=
 github.com/go-chi/chi/v5 v5.2.2/go.mod h1:L2yAIGWB3H+phAw1NxKwWM+7eUH/lU8pOMm5hHcoops=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/glycerine/zygomys/zygo"
+	"github.com/glycerine/zygomys/v9/zygo"
 )
 
 func ToSexp(env *zygo.Zlisp, val interface{}) zygo.Sexp {

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	badger "github.com/dgraph-io/badger/v4"
-	"github.com/glycerine/zygomys/zygo"
+	"github.com/glycerine/zygomys/v9/zygo"
 	"github.com/seapvnk/qokl/parser"
 )
 
