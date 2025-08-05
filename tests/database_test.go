@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/glycerine/zygomys/zygo"
+	"github.com/glycerine/zygomys/v9/zygo"
 	"github.com/seapvnk/qokl/core"
 	"github.com/seapvnk/qokl/storage"
 )

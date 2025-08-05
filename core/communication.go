@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/glycerine/zygomys/zygo"
+	"github.com/glycerine/zygomys/v9/zygo"
 	"github.com/gorilla/websocket"
 )
 
