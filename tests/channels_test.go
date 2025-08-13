@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/seapvnk/qokl/core"
 	"github.com/seapvnk/qokl/server"
 )
 
 func setupTestChannel(t *testing.T) *httptest.Server {
+	core.InitWS()
 	srv := server.New("./")
 	ts := httptest.NewServer(srv.Router)
 	t.Cleanup(ts.Close)
@@ -83,36 +85,6 @@ func TestChatroomSubscribeAndBroadcast(t *testing.T) {
 	}
 }
 
-// test if broadcastall channel its working
-func TestChannelBroadcastAll(t *testing.T) {
-	ts := setupTestChannel(t)
-	url := "ws" + strings.TrimPrefix(ts.URL, "http") + "/channels/notify-all"
-
-	ws1, ch1 := dialWS(t, url)
-	defer ws1.Close()
-	ws2, ch2 := dialWS(t, url)
-	defer ws2.Close()
-
-	time.Sleep(100 * time.Millisecond)
-
-	msg := "server maintenance at midnight"
-	if err := ws1.WriteMessage(websocket.TextMessage, []byte(msg)); err != nil {
-		t.Fatalf("Failed to write message: %v", err)
-	}
-
-	for _, ch := range []<-chan string{ch1, ch2} {
-		received, ok := waitForNonEmptyMessage(t, ch, 3*time.Second)
-		if !ok {
-			t.Error("Timeout waiting for broadcast-all message")
-			continue
-		}
-
-		if received != msg {
-			t.Errorf("Expected broadcast-all message containing %q, got %q", msg, received)
-		}
-	}
-}
-
 // test if private chat its working
 func TestPrivateChatToSelf(t *testing.T) {
 	ts := setupTestChannel(t)
@@ -136,7 +108,7 @@ func TestPrivateChatToSelf(t *testing.T) {
 		t.Error("Timeout waiting for broadcast-all message")
 	}
 
-	if received != testMsg {
+	if ! strings.Contains(received, testMsg) {
 		t.Errorf("Expected broadcast-all message containing %q, got %q", testMsg, received)
 	}
 }

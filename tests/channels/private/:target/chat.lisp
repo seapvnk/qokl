@@ -1,3 +1,3 @@
-(subscribe conn_id conn_id)
-
-(broadcast conn_id message)
+(cond init
+  (broadcast (hget params %target) (concat conn_id ": " msg))
+  (subscribe (hget params %target) conn_id))
