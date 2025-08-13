@@ -23,6 +23,8 @@ func New(baseDir, addr string) *Application {
 		vm:      vm,
 	}
 
+
+	core.InitWS()
 	app.server = server.New(baseDir)
 	app.tasks = tasks.New(baseDir)
 

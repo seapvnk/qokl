@@ -8,11 +8,13 @@ import (
 	"os"
 	"testing"
 
+	"github.com/seapvnk/qokl/core"
 	"github.com/seapvnk/qokl/server"
 	"github.com/seapvnk/qokl/storage"
 )
 
 func setupTestDB(t *testing.T) http.Handler {
+	core.InitWS()
 	srv := server.New("./")
 	return srv.Router
 }

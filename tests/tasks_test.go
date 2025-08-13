@@ -14,6 +14,7 @@ import (
 )
 
 func setupTestTask(t *testing.T) (http.Handler, *tasks.Listener) {
+	core.InitWS()
 	srv := server.New("./")
 	listener := tasks.New("./")
 	return srv.Router, listener

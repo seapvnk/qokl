@@ -6,35 +6,41 @@ import (
 	"sync"
 
 	"github.com/glycerine/zygomys/v9/zygo"
-	"github.com/gorilla/websocket"
+	"github.com/olahol/melody"
 )
 
 type ConnID string
 type Topic string
 
 var (
-	connections   = map[ConnID]*websocket.Conn{}
-	subscriptions = map[Topic]map[ConnID]struct{}{}
+	connections   = make(map[ConnID]*melody.Session)
+	subscriptions = make(map[Topic]map[ConnID]struct{})
 	wsMu          sync.RWMutex
+
+	WS *melody.Melody
 )
 
-// Communication module setup
+// InitWS initializes the global Melody instance
+func InitWS() {
+	WS = melody.New()
+}
+
+// UseCommunicationModule registers communication-related Lisp functions.
 func (vm *VM) UseCommunicationModule() *VM {
 	vm.environment.AddFunction("subscribe", fnSubscribe)
 	vm.environment.AddFunction("broadcast", fnBroadcast)
 	vm.environment.AddFunction("broadcastall", fnBroadcastAll)
-
 	return vm
 }
 
-// RegisterConn registers a new WebSocket connection.
-func RegisterConn(id ConnID, conn *websocket.Conn) {
+// RegisterConn stores a new Melody session by ConnID.
+func RegisterConn(id ConnID, sess *melody.Session) {
 	wsMu.Lock()
 	defer wsMu.Unlock()
-	connections[id] = conn
+	connections[id] = sess
 }
 
-// UnregisterConn removes a WebSocket connection and unsubscribes it from all topics.
+// UnregisterConn removes a Melody session and unsubscribes it from all topics.
 func UnregisterConn(id ConnID) {
 	wsMu.Lock()
 	defer wsMu.Unlock()
@@ -75,7 +81,7 @@ func fnSubscribe(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, err
 	return zygo.SexpNull, nil
 }
 
-// fnBroadcast broadcasts a message to all subscribers of a topic.
+// fnBroadcast sends a message to all subscribers of a topic.
 // Lisp: (broadcast "topic" "message")
 func fnBroadcast(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
 	if len(args) != 2 {
@@ -98,26 +104,25 @@ func fnBroadcast(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, err
 	defer wsMu.RUnlock()
 
 	subscribers, ok := subscriptions[topic]
-	if !ok {
+	if !ok || len(subscribers) == 0 {
 		log.Printf("[Broadcast] no subscribers for topic %s", topic)
 		return zygo.SexpNull, nil
 	}
 
 	for connID := range subscribers {
-		conn := connections[connID]
-		if conn != nil {
-			err := conn.WriteMessage(websocket.TextMessage, []byte(msgStr.S))
-			if err != nil {
+		if sess := connections[connID]; sess != nil && !sess.IsClosed() {
+			if err := sess.Write([]byte(msgStr.S)); err != nil {
 				log.Printf("[Broadcast] error writing to conn %s: %v", connID, err)
 			}
 		} else {
-			log.Printf("[Broadcast] no connection for connID %s", connID)
+			log.Printf("[Broadcast] no active connection for connID %s", connID)
 		}
 	}
+
 	return zygo.SexpNull, nil
 }
 
-// fnBroadcastAll broadcasts a message to all connected clients.
+// fnBroadcastAll sends a message to all connected sessions.
 // Lisp: (broadcastall "message")
 func fnBroadcastAll(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
 	if len(args) != 1 {
@@ -132,11 +137,10 @@ func fnBroadcastAll(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, 
 	wsMu.RLock()
 	defer wsMu.RUnlock()
 
-	for connID, conn := range connections {
-		if conn != nil {
-			err := conn.WriteMessage(websocket.TextMessage, []byte(message.S))
-			if err != nil {
-				log.Printf("broadcastall: failed to write to conn %s: %v", connID, err)
+	for connID, sess := range connections {
+		if sess != nil && !sess.IsClosed() {
+			if err := sess.Write([]byte(message.S)); err != nil {
+				log.Printf("[BroadcastAll] failed to write to conn %s: %v", connID, err)
 			}
 		}
 	}

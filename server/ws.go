@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 	"github.com/seapvnk/qokl/core"
+	"github.com/olahol/melody"
 )
 
 func (server *Server) setupChannels(r chi.Router) error {
@@ -26,39 +26,29 @@ func (server *Server) setupChannels(r chi.Router) error {
 		rel, _ := filepath.Rel(wsPath, path)
 		parts := strings.Split(rel, string(filepath.Separator))
 
-		// remove .lisp extension from last part
 		last := parts[len(parts)-1]
 		parts[len(parts)-1] = strings.TrimSuffix(last, ".lisp")
 
 		route := buildRoutePath(parts)
 
-		r.Get(route, wrapWSHandler(path))
+		r.Get(route, func(w http.ResponseWriter, r *http.Request) {
+			core.WS.HandleRequest(w, r)
+		})
+
+		initHandlers(core.WS, path)
+
 		return nil
 	})
 }
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin:     func(r *http.Request) bool { return true },
-}
-
-func wrapWSHandler(path string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		conn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			return
-		}
-
+func initHandlers(m *melody.Melody, defaultPath string) {
+	m.HandleConnect(func(s *melody.Session) {
 		connID := core.ConnID(uuid.NewString())
-		core.RegisterConn(connID, conn)
-		defer func() {
-			core.UnregisterConn(connID)
-			conn.Close()
-		}()
+		s.Set("conn_id", connID)
+		core.RegisterConn(connID, s)
 
 		headers := map[string]string{}
-		for k, v := range r.Header {
+		for k, v := range s.Request.Header {
 			if len(v) > 0 {
 				headers[k] = v[0]
 			}
@@ -67,26 +57,48 @@ func wrapWSHandler(path string) http.HandlerFunc {
 		input := map[string]any{
 			"conn_id": connID,
 			"headers": headers,
-			"params":  extractParams(r),
-			"message": "",
+			"params":  extractParams(s.Request),
+			"init":    false,
+			"msg":     "",
 		}
 
 		vm := core.NewVM().UseCommunicationModule().UseStoreModule()
 		vm.AddVariables(input)
-		vm.Execute(path)
+		vm.Execute(defaultPath)
+	})
 
-		// Loop for incoming messages
-		for {
-			_, msg, err := conn.ReadMessage()
-			if err != nil {
-				break
+	m.HandleMessage(func(s *melody.Session, msg []byte) {
+		m.BroadcastFilter(msg, func(q *melody.Session) bool {
+			return q.Request.URL.Path == s.Request.URL.Path
+		})
+
+		sessions, _ := m.Sessions()
+
+		for _, q := range sessions {
+			if q.Request.URL.Path == s.Request.URL.Path {
+				connIDValQ, _ := q.Get("conn_id")
+				paramsQ := extractParams(q.Request)
+				inputQ := map[string]any{
+					"conn_id": connIDValQ,
+					"headers": nil,
+					"init":    true,
+					"params":  paramsQ,
+					"msg":     string(msg),
+				}
+
+				vm := core.NewVM().UseCommunicationModule().UseStoreModule()
+				vm.AddVariables(inputQ)
+				vm.Execute(defaultPath)
 			}
-
-			input["message"] = string(msg)
-			vm.AddVariables(input)
-			vm.Execute(path)
 		}
-	}
+	})
+
+	m.HandleDisconnect(func(s *melody.Session) {
+		connIDVal, ok := s.Get("conn_id")
+		if ok {
+			core.UnregisterConn(connIDVal.(core.ConnID))
+		}
+	})
 }
 
 func extractParams(r *http.Request) map[string]string {
@@ -97,3 +109,4 @@ func extractParams(r *http.Request) map[string]string {
 	}
 	return params
 }
+

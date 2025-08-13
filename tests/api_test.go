@@ -7,10 +7,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/seapvnk/qokl/core"
 	"github.com/seapvnk/qokl/server"
 )
 
 func setupTestServer(t *testing.T) http.Handler {
+	core.InitWS()
 	srv := server.New("./")
 	return srv.Router
 }

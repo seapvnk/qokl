@@ -12,6 +12,7 @@ import (
 
 // Checks if insert can be performed
 func TestDBSpecs(t *testing.T) {
+	core.InitWS()
 	filepath.Walk("./specs", func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return err
