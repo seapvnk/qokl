@@ -26,7 +26,7 @@ func TestDBCanInsert(t *testing.T) {
 	router := setupTestDB(t)
 
 	payload := `(insert %(admin user) name: "Pedro" age: 23)`
-	req := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(payload)))
+	req := httptest.NewRequest("POST", "/query", bytes.NewBuffer([]byte(payload)))
 
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, req)
@@ -84,7 +84,7 @@ func TestDBQueryFilterReturnsOnlyOneResult(t *testing.T) {
 	router := setupTestDB(t)
 
 	payload1 := `(insert %(admin user) name: "Pedro" age: 23)`
-	req1 := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(payload1)))
+	req1 := httptest.NewRequest("POST", "/query", bytes.NewBuffer([]byte(payload1)))
 	resp1 := httptest.NewRecorder()
 	router.ServeHTTP(resp1, req1)
 	if resp1.Code != http.StatusOK {
@@ -92,7 +92,7 @@ func TestDBQueryFilterReturnsOnlyOneResult(t *testing.T) {
 	}
 
 	payload2 := `(insert %(admin user) name: "Sergio" age: 23)`
-	req2 := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(payload2)))
+	req2 := httptest.NewRequest("POST", "/query", bytes.NewBuffer([]byte(payload2)))
 	resp2 := httptest.NewRecorder()
 	router.ServeHTTP(resp2, req2)
 	if resp2.Code != http.StatusOK {
@@ -100,7 +100,7 @@ func TestDBQueryFilterReturnsOnlyOneResult(t *testing.T) {
 	}
 
 	query := `(select admin: (fn [e] (== "Pedro" (hget e %name))))`
-	queryReq := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(query)))
+	queryReq := httptest.NewRequest("POST", "/query", bytes.NewBuffer([]byte(query)))
 	queryResp := httptest.NewRecorder()
 	router.ServeHTTP(queryResp, queryReq)
 	if queryResp.Code != http.StatusOK {
@@ -129,7 +129,7 @@ func TestDBEntityByIDReturnsCorrectData(t *testing.T) {
 
 	// Insert entity
 	insertPayload := `(insert %(admin user) name: "Pedro" age: 23)`
-	insertReq := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(insertPayload)))
+	insertReq := httptest.NewRequest("POST", "/query", bytes.NewBuffer([]byte(insertPayload)))
 	insertResp := httptest.NewRecorder()
 	router.ServeHTTP(insertResp, insertReq)
 
@@ -150,7 +150,7 @@ func TestDBEntityByIDReturnsCorrectData(t *testing.T) {
 
 	// Query entity by ID
 	queryPayload := "(entity \"" + id + "\")"
-	queryReq := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(queryPayload)))
+	queryReq := httptest.NewRequest("POST", "/query", bytes.NewBuffer([]byte(queryPayload)))
 	queryResp := httptest.NewRecorder()
 	router.ServeHTTP(queryResp, queryReq)
 
@@ -184,7 +184,7 @@ func TestAddTagAndSelectByTag(t *testing.T) {
 
 	// insert a user
 	insertPayload := `(insert user: name: "Someone" age: 30)`
-	insertReq := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(insertPayload)))
+	insertReq := httptest.NewRequest("POST", "/query", bytes.NewBuffer([]byte(insertPayload)))
 	insertResp := httptest.NewRecorder()
 	router.ServeHTTP(insertResp, insertReq)
 
@@ -205,7 +205,7 @@ func TestAddTagAndSelectByTag(t *testing.T) {
 
 	// tag user as admin
 	addTagPayload := `(addTag admin: "` + id + `")`
-	addTagReq := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(addTagPayload)))
+	addTagReq := httptest.NewRequest("POST", "/query", bytes.NewBuffer([]byte(addTagPayload)))
 	addTagResp := httptest.NewRecorder()
 	router.ServeHTTP(addTagResp, addTagReq)
 
@@ -215,7 +215,7 @@ func TestAddTagAndSelectByTag(t *testing.T) {
 
 	// check if query admins returns the correct user
 	selectPayload := `(select admin: (fn [e] (== (hget e %age) 30)))`
-	selectReq := httptest.NewRequest("POST", "/", bytes.NewBuffer([]byte(selectPayload)))
+	selectReq := httptest.NewRequest("POST", "/query", bytes.NewBuffer([]byte(selectPayload)))
 	selectResp := httptest.NewRecorder()
 	router.ServeHTTP(selectResp, selectReq)
 

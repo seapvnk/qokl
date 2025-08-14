@@ -108,7 +108,7 @@ func TestPrivateChatToSelf(t *testing.T) {
 		t.Error("Timeout waiting for broadcast-all message")
 	}
 
-	if ! strings.Contains(received, testMsg) {
+	if !strings.Contains(received, testMsg) {
 		t.Errorf("Expected broadcast-all message containing %q, got %q", testMsg, received)
 	}
 }
