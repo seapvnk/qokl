@@ -1,13 +1,5 @@
-# stage 1: build server
+# stage 1: build
 FROM golang:1.24.5 AS builder
-
-WORKDIR /tools
-RUN apt-get update \
- && apt-get install -y curl tar xz-utils \
- && curl -LO https://github.com/upx/upx/releases/download/v4.2.1/upx-4.2.1-amd64_linux.tar.xz \
- && tar -xf upx-4.2.1-amd64_linux.tar.xz \
- && mv upx-4.2.1-amd64_linux/upx /usr/local/bin/ \
- && rm -rf upx*
 
 WORKDIR /app
 COPY go.mod go.sum ./
@@ -15,13 +7,10 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o qokl ./ \
-  && upx --lzma --best qokl
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o qokl .
 
-# stage 2: runtime
-FROM alpine:3.20
-
-RUN apk add --no-cache ca-certificates
+# stage 2: minimal runtime
+FROM gcr.io/distroless/base:nonroot
 
 WORKDIR /app
 COPY --from=builder /app/qokl .
@@ -29,5 +18,6 @@ COPY --from=builder /app/qokl .
 VOLUME ["/app/data"]
 ENV APP_DATA_PATH=/app/data
 
-ENTRYPOINT ["./qokl"]
+USER root
+ENTRYPOINT ["/app/qokl"]
 
