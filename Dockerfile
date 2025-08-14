@@ -15,7 +15,8 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-s -w" -o qokl ./
+RUN go build -ldflags="-s -w" -o qokl ./ \
+  && upx --lzma --best qokl
 
 # stage 2: runtime
 FROM alpine:3.20
