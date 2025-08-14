@@ -21,12 +21,13 @@ RUN go build -ldflags="-s -w" -o qokl ./ \
 # stage 2: runtime
 FROM alpine:3.20
 
-WORKDIR /app
+RUN apk add --no-cache ca-certificates
 
+WORKDIR /app
 COPY --from=builder /app/qokl .
 
 VOLUME ["/app/data"]
-
 ENV APP_DATA_PATH=/app/data
 
 ENTRYPOINT ["./qokl"]
+
