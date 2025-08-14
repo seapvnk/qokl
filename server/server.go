@@ -22,8 +22,13 @@ func New(baseDir string) *Server {
 		Router:  chi.NewRouter(),
 	}
 
+	// discover client routes
+	server.Router.Route("/", func(r chi.Router) {
+		_ = server.setupClient(r)
+	})
+
 	// query endpoint
-	server.Router.Post("/", queryHandler)
+	server.Router.Post("/query", queryHandler)
 
 	// discover api routes
 	server.Router.Route("/api", func(r chi.Router) {
