@@ -15,8 +15,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -ldflags="-s -w" -o qokl ./ \
-  && upx --lzma --best qokl
+RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-s -w" -o qokl ./
 
 # stage 2: runtime
 FROM scratch
