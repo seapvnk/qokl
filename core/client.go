@@ -40,7 +40,6 @@ func (vm *VM) UseClientModule() *VM {
 	return vm
 }
 
-
 // fnGenericHtmlHandler generate a generic html handler
 // Lisp: (tag prop: "value" "children")
 func fnGenericHtmlHandler(tag string) func(env *zygo.Zlisp, name string, args []zygo.Sexp) (zygo.Sexp, error) {
@@ -75,5 +74,3 @@ func fnGenericHtmlHandler(tag string) func(env *zygo.Zlisp, name string, args []
 		return &zygo.SexpStr{S: sb.String()}, nil
 	}
 }
-
-

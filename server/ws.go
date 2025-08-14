@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/seapvnk/qokl/core"
 	"github.com/olahol/melody"
+	"github.com/seapvnk/qokl/core"
 )
 
 func (server *Server) setupChannels(r chi.Router) error {
@@ -109,4 +109,3 @@ func extractParams(r *http.Request) map[string]string {
 	}
 	return params
 }
-

@@ -1,12 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
-	"fmt"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
