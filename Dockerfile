@@ -18,7 +18,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-s -w" -o qokl ./
 
 # stage 2: runtime
-FROM scratch
+FROM alpine:3.20
 
 WORKDIR /app
 
